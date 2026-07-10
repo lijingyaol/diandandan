@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商家后台 - 订单管理</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>📋 订单管理后台</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-num" id="pendingCount">0</span>
+                    <span class="stat-label">待处理</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="makingCount">0</span>
+                    <span class="stat-label">制作中</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="todayTotal">¥0</span>
+                    <span class="stat-label">今日营业额</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="filter-tabs">
+            <button class="filter-btn active" onclick="filterOrders('all')">全部</button>
+            <button class="filter-btn" onclick="filterOrders('pending')">待处理</button>
+            <button class="filter-btn" onclick="filterOrders('making')">制作中</button>
+            <button class="filter-btn" onclick="filterOrders('done')">已完成</button>
+        </div>
+
+        <div class="orders-list" id="ordersList">
+            <p class="loading">加载中...</p>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

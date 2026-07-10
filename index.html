@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美味餐厅 - 扫码点单</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 -->
+        <header class="header">
+            <h1>🍽️ 美味餐厅</h1>
+            <div class="table-info">
+                <span>桌号：</span>
+                <input type="text" id="tableNumber" placeholder="请输入桌号" value="1">
+            </div>
+        </header>
+
+        <!-- 分类标签 -->
+        <div class="category-tabs" id="categoryTabs"></div>
+
+        <!-- 菜单列表 -->
+        <div class="menu-list" id="menuList"></div>
+
+        <!-- 购物车浮窗 -->
+        <div class="cart-bar" id="cartBar" onclick="toggleCart()">
+            <span class="cart-icon">🛒</span>
+            <span class="cart-count" id="cartCount">0</span>
+            <span class="cart-total">¥<span id="cartTotal">0</span></span>
+            <button class="submit-btn" onclick="submitOrder(event)">去结算</button>
+        </div>
+
+        <!-- 购物车弹窗 -->
+        <div class="cart-modal" id="cartModal">
+            <div class="cart-content">
+                <div class="cart-header">
+                    <h3>已选菜品</h3>
+                    <span class="close-btn" onclick="toggleCart()">✕</span>
+                </div>
+                <div class="cart-items" id="cartItems"></div>
+                <div class="cart-footer">
+                    <div class="total">合计：<span>¥<span id="modalTotal">0</span></span></div>
+                    <button class="submit-order-btn" onclick="submitOrder(event)">提交订单</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提交成功弹窗 -->
+        <div class="success-modal" id="successModal">
+            <div class="success-content">
+                <div class="success-icon">✓</div>
+                <h2>下单成功！</h2>
+                <p>您的订单已提交，请稍等</p>
+                <p class="order-id">订单号：<span id="orderId"></span></p>
+                <button onclick="closeSuccess()">知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/customer.js"></script>
+</body>
+</html>
