@@ -4,9 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>商家后台 - 订单管理</title>
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: #f0f2f5; color: #333; }
+        .admin-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        
+        .admin-header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .admin-header h1 { font-size: 22px; margin-bottom: 15px; }
+        .stats { display: flex; gap: 20px; }
+        .stat-item { flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px; }
+        .stat-num { display: block; font-size: 28px; font-weight: bold; color: #ff6b6b; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; color: #666; }
+        
+        .filter-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { padding: 8px 20px; border: none; border-radius: 20px; background: white; color: #666; cursor: pointer; font-size: 14px; }
+        .filter-btn.active { background: #ff6b6b; color: white; }
+        
+        .orders-list { display: flex; flex-direction: column; gap: 12px; }
+        .order-card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #ff6b6b; }
+        .order-card.making { border-left-color: #faad14; }
+        .order-card.done, .order-card.paid { border-left-color: #52c41a; }
+        
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .order-info { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .order-id { font-weight: bold; color: #666; }
+        .table-num { background: #fff5f5; color: #ff6b6b; padding: 4px 10px; border-radius: 12px; font-size: 14px; font-weight: bold; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status-pending { background: #fff2f0; color: #ff4d4f; }
+        .status-making { background: #fffbe6; color: #faad14; }
+        .status-done { background: #f6ffed; color: #52c41a; }
+        .status-paid { background: #f0f5ff; color: #1890ff; }
+        .order-time { font-size: 13px; color: #999; }
+        
+        .order-items { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .order-item-tag { background: #f5f5f5; padding: 6px 12px; border-radius: 8px; font-size: 14px; }
+        
+        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f5f5f5; padding-top: 12px; }
+        .order-total { font-size: 18px; font-weight: bold; color: #ff6b6b; }
+        .action-btn { padding: 8px 20px; border: none; border-radius: 16px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; }
+        .action-btn.making { background: #faad14; }
+        .action-btn.done { background: #52c41a; }
+        .action-btn.paid { background: #1890ff; }
+        .done-text { color: #999; font-size: 14px; }
+        
+        .empty-orders { text-align: center; color: #999; padding: 40px; background: white; border-radius: 12px; }
+        .loading { text-align: center; color: #999; padding: 40px; }
+        
+        @media (max-width: 480px) { .stats { flex-direction: column; } }
+    </style>
 </head>
-<body class="admin-body">
+<body>
     <div class="admin-container">
         <header class="admin-header">
             <h1>📋 订单管理后台</h1>
@@ -38,7 +85,105 @@
         </div>
     </div>
 
-    <script src="js/data.js"></script>
-    <script src="js/admin.js"></script>
+    <script>
+        // ===== 数据操作 =====
+        function getOrders() {
+            return JSON.parse(localStorage.getItem('orders')) || [];
+        }
+
+        function updateOrderStatus(orderId, status) {
+            let orders = getOrders();
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = status;
+                localStorage.setItem('orders', JSON.stringify(orders));
+            }
+            return order;
+        }
+
+        // ===== 状态配置 =====
+        const STATUS_MAP = {
+            pending: { text: '待处理', class: 'status-pending', next: 'making', btnText: '开始制作' },
+            making: { text: '制作中', class: 'status-making', next: 'done', btnText: '制作完成' },
+            done: { text: '已完成', class: 'status-done', next: 'paid', btnText: '已收款' },
+            paid: { text: '已结账', class: 'status-paid', next: null, btnText: '-' }
+        };
+
+        let currentFilter = 'all';
+        let refreshInterval;
+
+        function initAdmin() {
+            renderOrders();
+            updateStats();
+            refreshInterval = setInterval(() => { renderOrders(); updateStats(); }, 3000);
+        }
+
+        function filterOrders(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderOrders();
+        }
+
+        function renderOrders() {
+            let orders = getOrders();
+            if (currentFilter !== 'all') orders = orders.filter(o => o.status === currentFilter);
+            orders.sort((a, b) => b.id - a.id);
+
+            if (orders.length === 0) {
+                document.getElementById('ordersList').innerHTML = '<p class="empty-orders">暂无订单</p>';
+                return;
+            }
+
+            document.getElementById('ordersList').innerHTML = orders.map(order => {
+                const status = STATUS_MAP[order.status];
+                const itemsHtml = order.items.map(item => 
+                    `<span class="order-item-tag">${item.name} x${item.quantity}</span>`
+                ).join('');
+                
+                return `
+                    <div class="order-card ${order.status}">
+                        <div class="order-header">
+                            <div class="order-info">
+                                <span class="order-id">#${order.id.toString().slice(-6)}</span>
+                                <span class="table-num">🪑 ${order.tableNumber}号桌</span>
+                                <span class="status-badge ${status.class}">${status.text}</span>
+                            </div>
+                            <span class="order-time">${order.createdAt}</span>
+                        </div>
+                        <div class="order-items">${itemsHtml}</div>
+                        <div class="order-footer">
+                            <span class="order-total">合计：¥${order.totalPrice}</span>
+                            ${status.next ? `
+                                <button class="action-btn ${status.next}" onclick="changeStatus(${order.id}, '${status.next}')">
+                                    ${status.btnText}
+                                </button>
+                            ` : '<span class="done-text">已结束</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function changeStatus(orderId, newStatus) {
+            updateOrderStatus(orderId, newStatus);
+            renderOrders();
+            updateStats();
+        }
+
+        function updateStats() {
+            const orders = getOrders();
+            const today = new Date().toDateString();
+            
+            document.getElementById('pendingCount').textContent = orders.filter(o => o.status === 'pending').length;
+            document.getElementById('makingCount').textContent = orders.filter(o => o.status === 'making').length;
+            document.getElementById('todayTotal').textContent = '¥' + orders
+                .filter(o => new Date(o.createdAt).toDateString() === today)
+                .reduce((sum, o) => sum + o.totalPrice, 0);
+        }
+
+        // 启动
+        initAdmin();
+    </script>
 </body>
 </html>
